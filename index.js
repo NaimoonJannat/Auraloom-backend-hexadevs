@@ -29,6 +29,23 @@ const client = new MongoClient(uri, {
     //   await client.connect();
 
     const database = client.db('Auraloom');
+    const podcastCollection = database.collection("allPodcasts");
+
+     // to send assignments backend 
+     app.post('/podcasts', async (req, res) => {
+        const newPodcast = req.body;
+        console.log(newPodcast);
+        const result = await podcastCollection.insertOne(newPodcast);
+        res.send(result);
+      })
+
+     
+    app.get('/podcasts', async (req, res) => {
+        const cursor = podcastCollection.find();
+        const result = await cursor.toArray();
+        res.send(result);
+      })
+
 
     
       // // Send a ping to confirm a successful connection
