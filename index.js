@@ -46,6 +46,24 @@ const client = new MongoClient(uri, {
         res.send(result);
       })
 
+      // searching
+    app.get('podcasts/:searchText', async(req, res)=>{
+      const searchText = req.params.searchText;
+      console.log(searchText);
+
+      
+      const query = {
+        name: {$regex: searchText, $options: 'i'},
+      };
+      
+      const cursor = podcastCollection.find(query) ;
+      const result = await cursor.toArray();
+      // const result = await cursor.find(query).toArray();
+
+      console.log(result);
+      res.send(result);
+    })
+      
 
     
       // // Send a ping to confirm a successful connection
