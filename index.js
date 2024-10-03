@@ -12,7 +12,8 @@ app.use(cors({
   }));
   app.use(express.json())
 
-  const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+  // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+  const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
   // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -39,14 +40,15 @@ const client = new MongoClient(uri, {
         res.send(result);
       })
 
-     
+    
+    // GETTING ALL PODCASTS
     app.get('/podcasts', async (req, res) => {
         const cursor = podcastCollection.find();
         const result = await cursor.toArray();
         res.send(result);
       })
 
-      // searching
+      // SEARCHING PODCAST
     app.get('podcasts/:searchText', async(req, res)=>{
       const searchText = req.params.searchText;
       console.log(searchText);
@@ -65,6 +67,44 @@ const client = new MongoClient(uri, {
     })
       
 
+    // GETTING A SINGLE PODCAST FOR DETAILS PAGE
+    // GETTING A SINGLE PODCAST FOR DETAILS PAGE
+      app.get('/podcasts/:id', async (req, res) => {
+        const id = req.params.id;
+        let query;
+
+        // Check if id is a valid ObjectId
+        if (ObjectId.isValid(id)) {
+            query = { _id: new ObjectId(id) };
+        } else {
+            // Handle invalid ObjectId cases, or use plain string id
+            query = { _id: id };  // only use this if _id in the database is a string
+        }
+
+        console.log('ID:', id);
+        console.log('Query:', query);
+
+        try {
+            const result = await podcastCollection.findOne(query);
+            if (result) {
+                res.status(200).send(result);
+            } else {
+                res.status(404).send({ message: 'Podcast not found' });
+            }
+        } catch (error) {
+            res.status(500).send({ error: 'Something went wrong', details: error });
+        }
+      });
+
+  //   app.get('/podcasts/:id', async(req, res)=>{
+  //     const id = req.params.id;
+  //     const query = {_id: new ObjectId(id)};
+  //     const result = await podcastCollection.findOne(query);
+  //     res.send(result);
+  // })
+
+  // HANDLING FAVICON ERROR
+  app.get('/favicon.ico', (req, res) => res.status(204));
     
       // // Send a ping to confirm a successful connection
       // await client.db("admin").command({ ping: 1 });
