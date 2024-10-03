@@ -7,7 +7,7 @@ const port = process.env.PORT || 5000;
 
 // middleware 
 app.use(cors({
-    origin: ['http://localhost:3000'],
+    origin: ['http://localhost:3000','https://auraloom-hexa-devs.vercel.app'],
     credentials: true
   }));
   app.use(express.json())
