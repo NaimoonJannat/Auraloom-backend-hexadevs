@@ -35,6 +35,22 @@ const client = new MongoClient(uri, {
     const podcastCollection = database.collection("allPodcasts");
     const userCollection = database.collection("allUsers");
 
+    // to send users backend
+    app.post('/users', async (req, res) => {
+      const newUser = req.body;
+      console.log(newUser);
+      const result = await userCollection.insertOne(newUser);
+      res.send(result);
+    })
+
+  
+  // GETTING ALL PODCASTS
+  app.get('/users', async (req, res) => {
+      const cursor = userCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
      // to send assignments backend 
      app.post('/podcasts', async (req, res) => {
         const newPodcast = req.body;
