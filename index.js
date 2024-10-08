@@ -7,7 +7,7 @@ const port = process.env.PORT || 5000;
 
 // middleware 
 app.use(cors({
-    origin: ['http://localhost:3000','https://auraloom-hexa-devs.vercel.app','*'],
+    origin: ['http://localhost:3000','https://auraloom-hexa-devs.vercel.app'],
     credentials: true
   }));
   app.use(express.json())
@@ -33,6 +33,7 @@ const client = new MongoClient(uri, {
 
     const database = client.db('Auraloom');
     const podcastCollection = database.collection("allPodcasts");
+    const userCollection = database.collection("allUsers");
 
      // to send assignments backend 
      app.post('/podcasts', async (req, res) => {
