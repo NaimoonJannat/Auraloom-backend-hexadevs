@@ -55,6 +55,12 @@ async function run() {
       }
     });
 
+    app.get('/playlists', async (req, res) => {
+      const cursor = playlistCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+
 
 
 
