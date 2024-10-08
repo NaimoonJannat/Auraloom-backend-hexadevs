@@ -44,7 +44,7 @@ const client = new MongoClient(uri, {
     })
 
   
-  // GETTING ALL PODCASTS
+  // Getting all users
   app.get('/users', async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
