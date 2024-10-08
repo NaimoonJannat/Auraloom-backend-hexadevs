@@ -41,13 +41,19 @@ async function run() {
       const newPlaylist = req.body;
 
       try {
+        // Insert the new playlist into the collection
         const result = await playlistCollection.insertOne(newPlaylist);
-        res.status(201).send(result); // Return the created playlist with status 201
+
+        // Return the inserted playlist ID with a 201 status
+        res.status(201).send({ insertedId: result.insertedId });
       } catch (error) {
         console.error('Error creating playlist:', error);
+
+        // Send a 500 status and the error message if something goes wrong
         res.status(500).send({ message: 'Failed to create playlist', error });
       }
     });
+
 
 
     // to send assignments backend 
