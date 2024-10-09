@@ -143,6 +143,34 @@ async function run() {
       }
     });
 
+    // Get route for all podcasts by a specific creator
+    app.get('/podcasts/creator/:creator', async (req, res) => {
+      const creator = req.params.creator.trim(); // Trim any extra spaces
+      let query;
+
+      // Use case-insensitive regular expression to match the creator
+      query = { creator: { $regex: new RegExp(creator, "i") } };
+
+      console.log('creator parameter:', creator);
+      console.log('Constructed query:', query);
+
+      try {
+        const results = await podcastCollection.find(query).toArray();
+        console.log('Query results:', results);
+
+        if (results.length > 0) {
+          res.status(200).send(results);
+        } else {
+          res.status(404).send({ message: 'No podcasts found for this creator' });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send({ error: 'Something went wrong', details: error });
+      }
+    });
+
+
+
     //   app.get('/podcasts/:id', async(req, res)=>{
     //     const id = req.params.id;
     //     const query = {_id: new ObjectId(id)};
