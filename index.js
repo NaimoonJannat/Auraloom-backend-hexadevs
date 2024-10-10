@@ -125,6 +125,30 @@ async function run() {
       res.send(result);
     })
 
+    // POSTING A REVIEW
+    app.post('/podcasts/:id/reviews', async (req, res) => {
+      const { id } = req.params; // Podcast ID
+      console.log(req.params.id);
+      const { username, email, review } = req.body; // Review data
+  
+      try {  
+          // Find the podcast by ID and add the new review to the comments array
+          const result = await podcastCollection.updateOne(
+              { _id: new ObjectId(id) }, // Find podcast by ID
+              { $push: { comments: { username, email, review } } } // Add the new comment to the comments array
+          );
+  
+          if (result.modifiedCount === 0) {
+              return res.status(404).json({ message: 'Podcast not found' });
+          }
+  
+          res.status(200).json({ message: 'Review added successfully' });
+      } catch (error) {
+          console.error('Error adding review:', error);
+          res.status(500).json({ message: 'Server error' });
+      }
+  });
+
     // SEARCHING PODCAST
     app.get('podcasts/:searchText', async (req, res) => {
       const searchText = req.params.searchText;
