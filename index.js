@@ -36,30 +36,59 @@ async function run() {
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
 
-
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
-      const newPlaylist = req.body;
+      const { name, email } = req.body; // Destructure name and email from the request body
+
+      // Validate the request: Ensure name and email are non-empty strings
+      if (!name || typeof name !== 'string' || !email || typeof email !== 'string') {
+        return res.status(400).send({ message: 'Invalid input: Playlist name and email are required and should be valid strings.' });
+      }
+
+      const newPlaylist = {
+        name: name.trim(), // Sanitize by trimming the input
+        email: email.trim(), // Sanitize by trimming the input
+        createdAt: new Date() // Optional: Add a timestamp for playlist creation
+      };
 
       try {
         // Insert the new playlist into the collection
         const result = await playlistCollection.insertOne(newPlaylist);
 
         // Return the inserted playlist ID with a 201 status
-        res.status(201).send({ insertedId: result.insertedId });
+        res.status(201).send({ message: 'Playlist created successfully', insertedId: result.insertedId });
       } catch (error) {
         console.error('Error creating playlist:', error);
 
         // Send a 500 status and the error message if something goes wrong
-        res.status(500).send({ message: 'Failed to create playlist', error });
+        res.status(500).send({ message: 'Failed to create playlist', error: error.message });
       }
     });
 
+    // GET playlists filtered by email
     app.get('/playlists', async (req, res) => {
-      const cursor = playlistCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    })
+      const userEmail = req.query.email; // Get email from query params
+
+      // Validate query parameter
+      if (!userEmail || typeof userEmail !== 'string') {
+        return res.status(400).send({ message: 'Invalid or missing email parameter.' });
+      }
+
+      try {
+        // Find all playlists for the specified user email
+        const playlists = await playlistCollection.find({ email: userEmail.trim() }).toArray();
+
+        // Check if playlists exist for this user
+        if (playlists.length === 0) {
+          return res.status(404).send({ message: 'No playlists found for the specified email.' });
+        }
+
+        res.status(200).send(playlists);
+      } catch (error) {
+        console.error('Error fetching playlists:', error);
+        res.status(500).send({ message: 'Failed to fetch playlists', error: error.message });
+      }
+    });
 
 
 
@@ -189,6 +218,40 @@ async function run() {
 
 
   
+    // Get route for all podcasts by a specific creator
+    app.get('/podcasts/creator/:creator', async (req, res) => {
+      const creator = req.params.creator.trim(); // Trim any extra spaces
+      let query;
+
+      // Use case-insensitive regular expression to match the creator
+      query = { creator: { $regex: new RegExp(creator, "i") } };
+
+      console.log('creator parameter:', creator);
+      console.log('Constructed query:', query);
+
+      try {
+        const results = await podcastCollection.find(query).toArray();
+        console.log('Query results:', results);
+
+        if (results.length > 0) {
+          res.status(200).send(results);
+        } else {
+          res.status(404).send({ message: 'No podcasts found for this creator' });
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        res.status(500).send({ error: 'Something went wrong', details: error });
+      }
+    });
+
+
+
+    //   app.get('/podcasts/:id', async(req, res)=>{
+    //     const id = req.params.id;
+    //     const query = {_id: new ObjectId(id)};
+    //     const result = await podcastCollection.findOne(query);
+    //     res.send(result);
+    // })
 
     // HANDLING FAVICON ERROR
     app.get('/favicon.ico', (req, res) => res.status(204));
