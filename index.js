@@ -93,10 +93,6 @@ async function run() {
 
 
 
-
-
-
-
     // to send users backend
     app.post('/users', async (req, res) => {
       const newUser = req.body;
