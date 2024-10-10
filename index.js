@@ -165,6 +165,52 @@ async function run() {
       }
     });
 
+    // PATCH request to add a like (user's email) to a podcast
+      app.patch('/podcasts/like/:id', async (req, res) => {
+        const id = req.params.id;
+        const email = req.query.email;
+
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+            $addToSet: { likes: email } // Add user email to the 'likes' array, ensuring it's unique
+        };
+
+        try {
+            const result = await podcastCollection.updateOne(filter, updateDoc);
+            if (result.modifiedCount > 0) {
+                res.status(200).send({ message: 'Podcast liked successfully!' });
+            } else {
+                res.status(404).send({ message: 'Podcast not found or already liked' });
+            }
+        } catch (error) {
+            res.status(500).send({ error: 'Failed to like the podcast', details: error });
+        }
+      });
+
+       // PATCH request to add a dislike (user's email) to a podcast
+       app.patch('/podcasts/dislike/:id', async (req, res) => {
+        const id = req.params.id;
+        const email = req.query.email;
+
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+            $addToSet: { dislikes: email } // Add user email to the 'dislikes' array, ensuring it's unique
+        };
+
+        try {
+            const result = await podcastCollection.updateOne(filter, updateDoc);
+            if (result.modifiedCount > 0) {
+                res.status(200).send({ message: 'Podcast disliked successfully!' });
+            } else {
+                res.status(404).send({ message: 'Podcast not found or already disliked' });
+            }
+        } catch (error) {
+            res.status(500).send({ error: 'Failed to dislike the podcast', details: error });
+        }
+      });
+
+
+  
     // Get route for all podcasts by a specific creator
     app.get('/podcasts/creator/:creator', async (req, res) => {
       const creator = req.params.creator.trim(); // Trim any extra spaces
