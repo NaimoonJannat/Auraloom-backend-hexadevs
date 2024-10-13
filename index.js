@@ -66,30 +66,23 @@ async function run() {
     });
 
     // GET playlists filtered by email
+    // GET playlists filtered by email
     app.get('/playlists', async (req, res) => {
       const userEmail = req.query.email; // Get email from query params
 
-      // Validate query parameter
-      if (!userEmail || typeof userEmail !== 'string') {
+      if (!userEmail) {
+        // Handle missing email
         return res.status(400).send({ message: 'Invalid or missing email parameter.' });
       }
 
       try {
-        // Find all playlists for the specified user email
-        const playlists = await playlistCollection.find({ email: userEmail.trim() }).toArray();
-
-        // Check if playlists exist for this user
-        if (playlists.length === 0) {
-          return res.status(404).send({ message: 'No playlists found for the specified email.' });
-        }
-
-        res.status(200).send(playlists);
+        const playlists = await playlistCollection.find({ email: userEmail }).toArray();
+        res.send(playlists);
       } catch (error) {
         console.error('Error fetching playlists:', error);
-        res.status(500).send({ message: 'Failed to fetch playlists', error: error.message });
+        res.status(500).send({ message: 'Failed to fetch playlists.' });
       }
     });
-
 
 
 
@@ -124,6 +117,30 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     })
+
+    // POSTING A REVIEW
+    app.post('/podcasts/:id/reviews', async (req, res) => {
+      const { id } = req.params; // Podcast ID
+      console.log(req.params.id);
+      const { username, email, review } = req.body; // Review data
+  
+      try {  
+          // Find the podcast by ID and add the new review to the comments array
+          const result = await podcastCollection.updateOne(
+              { _id: new ObjectId(id) }, // Find podcast by ID
+              { $push: { comments: { username, email, review } } } // Add the new comment to the comments array
+          );
+  
+          if (result.modifiedCount === 0) {
+              return res.status(404).json({ message: 'Podcast not found' });
+          }
+  
+          res.status(200).json({ message: 'Review added successfully' });
+      } catch (error) {
+          console.error('Error adding review:', error);
+          res.status(500).json({ message: 'Server error' });
+      }
+  });
 
     // SEARCHING PODCAST
     app.get('podcasts/:searchText', async (req, res) => {
