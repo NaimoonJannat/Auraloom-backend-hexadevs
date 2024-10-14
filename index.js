@@ -66,30 +66,23 @@ async function run() {
     });
 
     // GET playlists filtered by email
+    // GET playlists filtered by email
     app.get('/playlists', async (req, res) => {
       const userEmail = req.query.email; // Get email from query params
 
-      // Validate query parameter
-      if (!userEmail || typeof userEmail !== 'string') {
+      if (!userEmail) {
+        // Handle missing email
         return res.status(400).send({ message: 'Invalid or missing email parameter.' });
       }
 
       try {
-        // Find all playlists for the specified user email
-        const playlists = await playlistCollection.find({ email: userEmail.trim() }).toArray();
-
-        // Check if playlists exist for this user
-        if (playlists.length === 0) {
-          return res.status(404).send({ message: 'No playlists found for the specified email.' });
-        }
-
-        res.status(200).send(playlists);
+        const playlists = await playlistCollection.find({ email: userEmail }).toArray();
+        res.send(playlists);
       } catch (error) {
         console.error('Error fetching playlists:', error);
-        res.status(500).send({ message: 'Failed to fetch playlists', error: error.message });
+        res.status(500).send({ message: 'Failed to fetch playlists.' });
       }
     });
-
 
 
 
