@@ -130,32 +130,28 @@ async function run() {
       res.send(result);
     });
 
-    // GETTING ALL PODCASTS
-    app.get("/podcasts", async (req, res) => {
-      const page = parseInt(req.query.page);
-      const limit = parseInt(req.query.limit);
+    // GETTING ALL PODCASTS with optional pagination and search
+    app.get('/podcasts', async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 9;
+      const searchText = req.query.search || ""; // Get search text from query params
+      const skip = (page - 1) * limit;
 
-      let podcasts;
-      let totalPodcasts;
+      const query = searchText
+        ? { title: { $regex: searchText, $options: "i" } } // Case-insensitive regex search
+        : {}; // No filter if no search text
 
       try {
-        if (page && limit) {
-          const skip = (page - 1) * limit;
-          podcasts = await podcastCollection
-            .find()
-            .skip(skip)
-            .limit(limit)
-            .toArray();
-          totalPodcasts = await podcastCollection.countDocuments(); // Get the total number of podcasts for pagination
-          res.send({ podcasts, totalPodcasts });
-        } else {
-          // Return all podcasts if no pagination parameters are provided
-          podcasts = await podcastCollection.find().toArray();
-          res.send(podcasts);
-        }
+        const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
+        const totalPodcasts = await podcastCollection.countDocuments(query); // Only count matching podcasts
+
+        res.send({
+          podcasts,
+          totalPodcasts,
+        });
       } catch (error) {
-        console.error("Error fetching podcasts:", error);
-        res.status(500).send({ message: "Failed to fetch podcasts." });
+        console.error('Error fetching podcasts:', error);
+        res.status(500).send({ message: 'Failed to fetch podcasts.' });
       }
     });
 
