@@ -314,6 +314,7 @@ async function run() {
     // HANDLING FAVICON ERROR
     app.get("/favicon.ico", (req, res) => res.status(204));
 
+    
     // // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     // console.log("Pinged your deployment. You successfully connected to MongoDB!");
@@ -321,6 +322,7 @@ async function run() {
     // Ensures that the client will close when you finish/error
     //   await client.close();
   }
+
 }
 run().catch(console.log);
 app.get("/", (req, res) => {
