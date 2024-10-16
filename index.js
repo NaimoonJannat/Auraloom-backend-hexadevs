@@ -38,51 +38,43 @@ async function run() {
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
-      const { name, email } = req.body; // Destructure name and email from the request body
+      const newPlaylist = req.body;
+      console.log(newPlaylist);
+      const result = await playlistCollection.insertOne(newPlaylist);
+      res.send(result)
+    })
 
-      // Validate the request: Ensure name and email are non-empty strings
-      if (!name || typeof name !== 'string' || !email || typeof email !== 'string') {
-        return res.status(400).send({ message: 'Invalid input: Playlist name and email are required and should be valid strings.' });
-      }
-
-      const newPlaylist = {
-        name: name.trim(), // Sanitize by trimming the input
-        email: email.trim(), // Sanitize by trimming the input
-        createdAt: new Date() // Optional: Add a timestamp for playlist creation
-      };
-
-      try {
-        // Insert the new playlist into the collection
-        const result = await playlistCollection.insertOne(newPlaylist);
-
-        // Return the inserted playlist ID with a 201 status
-        res.status(201).send({ message: 'Playlist created successfully', insertedId: result.insertedId });
-      } catch (error) {
-        console.error('Error creating playlist:', error);
-
-        // Send a 500 status and the error message if something goes wrong
-        res.status(500).send({ message: 'Failed to create playlist', error: error.message });
-      }
-    });
-
-    // GET playlists filtered by email
-    // GET playlists filtered by email
+    //GET playlists name
     app.get('/playlists', async (req, res) => {
-      const userEmail = req.query.email; // Get email from query params
+      const result = await playlistCollection.find().toArray();
+      res.send(result)
+    })
 
-      if (!userEmail) {
-        // Handle missing email
-        return res.status(400).send({ message: 'Invalid or missing email parameter.' });
-      }
+    //GET playlists filtered by email
+    app.get('/playlists/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await playlistCollection.find(query).toArray()
+      res.send(result)
+    })
+
+
+    // GET playlist by ID
+    app.get('/playlists/:id', async (req, res) => {
+      const playlistId = req.params.id;
 
       try {
-        const playlists = await playlistCollection.find({ email: userEmail }).toArray();
-        res.send(playlists);
+        const playlist = await playlistCollection.findOne({ _id: new ObjectId(playlistId) });
+        if (!playlist) {
+          return res.status(404).send({ message: 'Playlist not found' });
+        }
+        res.send(playlist);
       } catch (error) {
-        console.error('Error fetching playlists:', error);
-        res.status(500).send({ message: 'Failed to fetch playlists.' });
+        console.error('Error fetching playlist by ID:', error);
+        res.status(500).send({ message: 'Failed to fetch playlist.' });
       }
     });
+
 
 
 
@@ -166,51 +158,51 @@ async function run() {
     });
 
     // PATCH request to add a like (user's email) to a podcast
-      app.patch('/podcasts/like/:id', async (req, res) => {
-        const id = req.params.id;
-        const email = req.query.email;
+    app.patch('/podcasts/like/:id', async (req, res) => {
+      const id = req.params.id;
+      const email = req.query.email;
 
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-            $addToSet: { likes: email } // Add user email to the 'likes' array, ensuring it's unique
-        };
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $addToSet: { likes: email } // Add user email to the 'likes' array, ensuring it's unique
+      };
 
-        try {
-            const result = await podcastCollection.updateOne(filter, updateDoc);
-            if (result.modifiedCount > 0) {
-                res.status(200).send({ message: 'Podcast liked successfully!' });
-            } else {
-                res.status(404).send({ message: 'Podcast not found or already liked' });
-            }
-        } catch (error) {
-            res.status(500).send({ error: 'Failed to like the podcast', details: error });
+      try {
+        const result = await podcastCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: 'Podcast liked successfully!' });
+        } else {
+          res.status(404).send({ message: 'Podcast not found or already liked' });
         }
-      });
+      } catch (error) {
+        res.status(500).send({ error: 'Failed to like the podcast', details: error });
+      }
+    });
 
-       // PATCH request to add a dislike (user's email) to a podcast
-       app.patch('/podcasts/dislike/:id', async (req, res) => {
-        const id = req.params.id;
-        const email = req.query.email;
+    // PATCH request to add a dislike (user's email) to a podcast
+    app.patch('/podcasts/dislike/:id', async (req, res) => {
+      const id = req.params.id;
+      const email = req.query.email;
 
-        const filter = { _id: new ObjectId(id) };
-        const updateDoc = {
-            $addToSet: { dislikes: email } // Add user email to the 'dislikes' array, ensuring it's unique
-        };
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $addToSet: { dislikes: email } // Add user email to the 'dislikes' array, ensuring it's unique
+      };
 
-        try {
-            const result = await podcastCollection.updateOne(filter, updateDoc);
-            if (result.modifiedCount > 0) {
-                res.status(200).send({ message: 'Podcast disliked successfully!' });
-            } else {
-                res.status(404).send({ message: 'Podcast not found or already disliked' });
-            }
-        } catch (error) {
-            res.status(500).send({ error: 'Failed to dislike the podcast', details: error });
+      try {
+        const result = await podcastCollection.updateOne(filter, updateDoc);
+        if (result.modifiedCount > 0) {
+          res.status(200).send({ message: 'Podcast disliked successfully!' });
+        } else {
+          res.status(404).send({ message: 'Podcast not found or already disliked' });
         }
-      });
+      } catch (error) {
+        res.status(500).send({ error: 'Failed to dislike the podcast', details: error });
+      }
+    });
 
 
-  
+
     // Get route for all podcasts by a specific creator
     app.get('/podcasts/creator/:creator', async (req, res) => {
       const creator = req.params.creator.trim(); // Trim any extra spaces
