@@ -14,10 +14,10 @@ app.use(
 );
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // MongoDB url mirza
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -125,7 +125,7 @@ async function run() {
     // to send assignments backend
     app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
-      console.log(newPodcast);
+      // console.log(newPodcast);
       const result = await podcastCollection.insertOne(newPodcast);
       res.send(result);
     });
@@ -136,21 +136,34 @@ async function run() {
       const limit = parseInt(req.query.limit) || 9;
       const searchText = req.query.search || ""; // Get search text from query params
       const skip = (page - 1) * limit;
-
+  
       const query = searchText
-        ? { title: { $regex: searchText, $options: "i" } } // Case-insensitive regex search
-        : {}; // No filter if no search text
-
+          ? { title: { $regex: searchText, $options: "i" } } // Case-insensitive regex search
+          : {}; // No filter if no search text
+  
       try {
-        const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
-        const totalPodcasts = await podcastCollection.countDocuments(query); // Only count matching podcasts
-
-        res.send(podcasts);
+          // Fetch the podcasts based on the query
+          const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
+  
+          // Send the podcasts directly as an array
+          res.send(podcasts);
       } catch (error) {
-        console.error('Error fetching podcasts:', error);
-        res.status(500).send({ message: 'Failed to fetch podcasts.' });
+          console.error('Error fetching podcasts:', error);
+          res.status(500).send({ message: 'Failed to fetch podcasts.' });
       }
-    });
+  });
+  
+
+    // GETTING TOTAL PODCASTS COUNT FOR PAGINATION
+    app.get('/podcasts/count', async (req, res) => {
+      try {
+          const totalPodcasts = await podcastCollection.countDocuments();
+          res.send({ totalPodcasts });
+      } catch (error) {
+          console.error('Error fetching podcast count:', error);
+          res.status(500).send({ message: 'Failed to fetch podcast count.' });
+      }
+  });
 
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
@@ -195,20 +208,20 @@ async function run() {
 
     // GETTING A SINGLE PODCAST FOR DETAILS PAGE
     app.get("/podcasts/:id", async (req, res) => {
-      const id = req.params.id;
+      const { id } = req.params;
       let query;
-
+    
       // Check if id is a valid ObjectId
-      if (ObjectId.isValid(id)) {
+      if (ObjectId.isValid(id) && String(new ObjectId(id)) === id) {
         query = { _id: new ObjectId(id) };
       } else {
-        // Handle invalid ObjectId cases, or use plain string id
-        query = { _id: id }; // only use this if _id in the database is a string
+        console.log("Invalid ID received:", id); // Log the invalid ID for debugging
+        return res.status(400).send({ message: "Invalid podcast ID format" });
       }
-
+    
       console.log("ID:", id);
       console.log("Query:", query);
-
+    
       try {
         const result = await podcastCollection.findOne(query);
         if (result) {
@@ -217,9 +230,11 @@ async function run() {
           res.status(404).send({ message: "Podcast not found" });
         }
       } catch (error) {
+        console.error("Error fetching podcast:", error);
         res.status(500).send({ error: "Something went wrong", details: error });
       }
     });
+    
 
     // PATCH request to add a like (user's email) to a podcast
     app.patch("/podcasts/like/:id", async (req, res) => {
