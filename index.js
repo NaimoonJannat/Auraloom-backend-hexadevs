@@ -145,10 +145,7 @@ async function run() {
         const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
         const totalPodcasts = await podcastCollection.countDocuments(query); // Only count matching podcasts
 
-        res.send({
-          podcasts,
-          totalPodcasts,
-        });
+        res.send(podcasts);
       } catch (error) {
         console.error('Error fetching podcasts:', error);
         res.status(500).send({ message: 'Failed to fetch podcasts.' });
