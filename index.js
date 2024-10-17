@@ -14,10 +14,10 @@ app.use(
 );
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // MongoDB url mirza
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -39,73 +39,36 @@ async function run() {
     const playlistCollection = database.collection("playlists");
 
     // CREATE a new playlist
-    app.post("/playlists", async (req, res) => {
-      const { name, email } = req.body; // Destructure name and email from the request body
+    app.post('/playlists', async (req, res) => {
+      const newPlaylist = req.body;
+      console.log(newPlaylist);
+      const result = await playlistCollection.insertOne(newPlaylist);
+      res.send(result)
+    })
 
-      // Validate the request: Ensure name and email are non-empty strings
-      if (
-        !name ||
-        typeof name !== "string" ||
-        !email ||
-        typeof email !== "string"
-      ) {
-        return res
-          .status(400)
-          .send({
-            message:
-              "Invalid input: Playlist name and email are required and should be valid strings.",
-          });
-      }
+    //GET playlists name
+    app.get('/playlists', async (req, res) => {
+      const result = await playlistCollection.find().toArray();
+      res.send(result)
+    })
 
-      const newPlaylist = {
-        name: name.trim(), // Sanitize by trimming the input
-        email: email.trim(), // Sanitize by trimming the input
-        createdAt: new Date(), // Optional: Add a timestamp for playlist creation
-      };
+    //GET playlists filtered by email
+    app.get('/playlists/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await playlistCollection.find(query).toArray()
+      res.send(result)
+    })
 
-      try {
-        // Insert the new playlist into the collection
-        const result = await playlistCollection.insertOne(newPlaylist);
+    //GET playlists filtered by Id
+    app.get('/playlists/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await playlistCollection.findOne(query)
+      res.json(result)
+    })
 
-        // Return the inserted playlist ID with a 201 status
-        res
-          .status(201)
-          .send({
-            message: "Playlist created successfully",
-            insertedId: result.insertedId,
-          });
-      } catch (error) {
-        console.error("Error creating playlist:", error);
 
-        // Send a 500 status and the error message if something goes wrong
-        res
-          .status(500)
-          .send({ message: "Failed to create playlist", error: error.message });
-      }
-    });
-
-    // GET playlists filtered by email
-    // GET playlists filtered by email
-    app.get("/playlists", async (req, res) => {
-      const userEmail = req.query.email; // Get email from query params
-
-      if (!userEmail) {
-        // Handle missing email
-        return res
-          .status(400)
-          .send({ message: "Invalid or missing email parameter." });
-      }
-
-      try {
-        const playlists = await playlistCollection
-          .find({ email: userEmail })
-          .toArray();
-        res.send(playlists);
-      } catch (error) {
-        console.error("Error fetching playlists:", error);
-        res.status(500).send({ message: "Failed to fetch playlists." });
-      }
-    });
 
     // to send users backend
     app.post("/users", async (req, res) => {
@@ -125,7 +88,7 @@ async function run() {
     // to send assignments backend
     app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
-      console.log(newPodcast);
+      // console.log(newPodcast);
       const result = await podcastCollection.insertOne(newPodcast);
       res.send(result);
     });
@@ -136,21 +99,34 @@ async function run() {
       const limit = parseInt(req.query.limit) || 9;
       const searchText = req.query.search || ""; // Get search text from query params
       const skip = (page - 1) * limit;
-
+  
       const query = searchText
-        ? { title: { $regex: searchText, $options: "i" } } // Case-insensitive regex search
-        : {}; // No filter if no search text
-
+          ? { title: { $regex: searchText, $options: "i" } } // Case-insensitive regex search
+          : {}; // No filter if no search text
+  
       try {
-        const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
-        const totalPodcasts = await podcastCollection.countDocuments(query); // Only count matching podcasts
-
-        res.send(podcasts);
+          // Fetch the podcasts based on the query
+          const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
+  
+          // Send the podcasts directly as an array
+          res.send(podcasts);
       } catch (error) {
-        console.error('Error fetching podcasts:', error);
-        res.status(500).send({ message: 'Failed to fetch podcasts.' });
+          console.error('Error fetching podcasts:', error);
+          res.status(500).send({ message: 'Failed to fetch podcasts.' });
       }
-    });
+  });
+  
+
+    // GETTING TOTAL PODCASTS COUNT FOR PAGINATION
+    app.get('/podcasts/count', async (req, res) => {
+      try {
+          const totalPodcasts = await podcastCollection.countDocuments();
+          res.send({ totalPodcasts });
+      } catch (error) {
+          console.error('Error fetching podcast count:', error);
+          res.status(500).send({ message: 'Failed to fetch podcast count.' });
+      }
+  });
 
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
@@ -195,20 +171,20 @@ async function run() {
 
     // GETTING A SINGLE PODCAST FOR DETAILS PAGE
     app.get("/podcasts/:id", async (req, res) => {
-      const id = req.params.id;
+      const { id } = req.params;
       let query;
-
+    
       // Check if id is a valid ObjectId
-      if (ObjectId.isValid(id)) {
+      if (ObjectId.isValid(id) && String(new ObjectId(id)) === id) {
         query = { _id: new ObjectId(id) };
       } else {
-        // Handle invalid ObjectId cases, or use plain string id
-        query = { _id: id }; // only use this if _id in the database is a string
+        console.log("Invalid ID received:", id); // Log the invalid ID for debugging
+        return res.status(400).send({ message: "Invalid podcast ID format" });
       }
-
+    
       console.log("ID:", id);
       console.log("Query:", query);
-
+    
       try {
         const result = await podcastCollection.findOne(query);
         if (result) {
@@ -217,9 +193,11 @@ async function run() {
           res.status(404).send({ message: "Podcast not found" });
         }
       } catch (error) {
+        console.error("Error fetching podcast:", error);
         res.status(500).send({ error: "Something went wrong", details: error });
       }
     });
+    
 
     // PATCH request to add a like (user's email) to a podcast
     app.patch("/podcasts/like/:id", async (req, res) => {
