@@ -60,22 +60,7 @@ async function run() {
       res.send(result)
     })
 
-
-    // GET playlist by ID
-    // app.get('/playlists/:id', async (req, res) => {
-    //   const playlistId = req.params.id;
-
-    //   try {
-    //     const playlist = await playlistCollection.findOne({ _id: new ObjectId(playlistId) });
-    //     if (!playlist) {
-    //       return res.status(404).send({ message: 'Playlist not found' });
-    //     }
-    //     res.send(playlist);
-    //   } catch (error) {
-    //     console.error('Error fetching playlist by ID:', error);
-    //     res.status(500).send({ message: 'Failed to fetch playlist.' });
-    //   }
-    // });
+    //GET playlists filtered by Id
     app.get('/playlists/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
