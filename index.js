@@ -14,10 +14,11 @@ app.use(
 );
 app.use(express.json());
 
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// Mongo URL Prapti
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // MongoDB url mirza
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.0pky6me.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -31,7 +32,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    //   await client.connect();
+    // await client.connect();
 
     const database = client.db("Auraloom");
     const podcastCollection = database.collection("allPodcasts");
@@ -71,21 +72,21 @@ async function run() {
 
 
     // to send users backend
-    app.post("/users", async (req, res) => {
+    app.post('/users', async (req, res) => {
       const newUser = req.body;
-      console.log(newUser);
+      // console.log(newUser);
       const result = await userCollection.insertOne(newUser);
       res.send(result);
     });
 
     // Getting all users
-    app.get("/users", async (req, res) => {
+    app.get('/users', async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    // to send assignments backend
+    // to send podcasts backend
     app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
       // console.log(newPodcast);
