@@ -39,73 +39,36 @@ async function run() {
     const playlistCollection = database.collection("playlists");
 
     // CREATE a new playlist
-    app.post("/playlists", async (req, res) => {
-      const { name, email } = req.body; // Destructure name and email from the request body
+    app.post('/playlists', async (req, res) => {
+      const newPlaylist = req.body;
+      console.log(newPlaylist);
+      const result = await playlistCollection.insertOne(newPlaylist);
+      res.send(result)
+    })
 
-      // Validate the request: Ensure name and email are non-empty strings
-      if (
-        !name ||
-        typeof name !== "string" ||
-        !email ||
-        typeof email !== "string"
-      ) {
-        return res
-          .status(400)
-          .send({
-            message:
-              "Invalid input: Playlist name and email are required and should be valid strings.",
-          });
-      }
+    //GET playlists name
+    app.get('/playlists', async (req, res) => {
+      const result = await playlistCollection.find().toArray();
+      res.send(result)
+    })
 
-      const newPlaylist = {
-        name: name.trim(), // Sanitize by trimming the input
-        email: email.trim(), // Sanitize by trimming the input
-        createdAt: new Date(), // Optional: Add a timestamp for playlist creation
-      };
+    //GET playlists filtered by email
+    app.get('/playlists/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await playlistCollection.find(query).toArray()
+      res.send(result)
+    })
 
-      try {
-        // Insert the new playlist into the collection
-        const result = await playlistCollection.insertOne(newPlaylist);
+    //GET playlists filtered by Id
+    app.get('/playlists/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await playlistCollection.findOne(query)
+      res.json(result)
+    })
 
-        // Return the inserted playlist ID with a 201 status
-        res
-          .status(201)
-          .send({
-            message: "Playlist created successfully",
-            insertedId: result.insertedId,
-          });
-      } catch (error) {
-        console.error("Error creating playlist:", error);
 
-        // Send a 500 status and the error message if something goes wrong
-        res
-          .status(500)
-          .send({ message: "Failed to create playlist", error: error.message });
-      }
-    });
-
-    // GET playlists filtered by email
-    // GET playlists filtered by email
-    app.get("/playlists", async (req, res) => {
-      const userEmail = req.query.email; // Get email from query params
-
-      if (!userEmail) {
-        // Handle missing email
-        return res
-          .status(400)
-          .send({ message: "Invalid or missing email parameter." });
-      }
-
-      try {
-        const playlists = await playlistCollection
-          .find({ email: userEmail })
-          .toArray();
-        res.send(playlists);
-      } catch (error) {
-        console.error("Error fetching playlists:", error);
-        res.status(500).send({ message: "Failed to fetch playlists." });
-      }
-    });
 
     // to send users backend
     app.post("/users", async (req, res) => {
