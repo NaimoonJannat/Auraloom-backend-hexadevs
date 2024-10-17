@@ -71,21 +71,21 @@ async function run() {
 
 
     // to send users backend
-    app.post("/users", async (req, res) => {
+    app.post('/users', async (req, res) => {
       const newUser = req.body;
-      console.log(newUser);
+      // console.log(newUser);
       const result = await userCollection.insertOne(newUser);
       res.send(result);
     });
 
     // Getting all users
-    app.get("/users", async (req, res) => {
+    app.get('/users', async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    // to send assignments backend
+    // to send podcasts backend
     app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
       // console.log(newPodcast);
