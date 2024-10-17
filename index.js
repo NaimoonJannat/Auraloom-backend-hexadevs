@@ -1,16 +1,18 @@
-const express = require('express')
-const cors = require('cors');
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const express = require("express");
+const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
-require('dotenv').config();
+require("dotenv").config();
 const port = process.env.PORT || 5000;
 
-// middleware 
-app.use(cors({
-  origin: ['http://localhost:3000', 'https://auraloom-hexa-devs.vercel.app'],
-  credentials: true
-}));
-app.use(express.json())
+// middleware
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://auraloom-hexa-devs.vercel.app"],
+    credentials: true,
+  })
+);
+app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -23,7 +25,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -31,7 +33,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     //   await client.connect();
 
-    const database = client.db('Auraloom');
+    const database = client.db("Auraloom");
     const podcastCollection = database.collection("allPodcasts");
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
@@ -60,64 +62,108 @@ async function run() {
 
 
     // GET playlist by ID
+    // app.get('/playlists/:id', async (req, res) => {
+    //   const playlistId = req.params.id;
+
+    //   try {
+    //     const playlist = await playlistCollection.findOne({ _id: new ObjectId(playlistId) });
+    //     if (!playlist) {
+    //       return res.status(404).send({ message: 'Playlist not found' });
+    //     }
+    //     res.send(playlist);
+    //   } catch (error) {
+    //     console.error('Error fetching playlist by ID:', error);
+    //     res.status(500).send({ message: 'Failed to fetch playlist.' });
+    //   }
+    // });
     app.get('/playlists/:id', async (req, res) => {
-      const playlistId = req.params.id;
-
-      try {
-        const playlist = await playlistCollection.findOne({ _id: new ObjectId(playlistId) });
-        if (!playlist) {
-          return res.status(404).send({ message: 'Playlist not found' });
-        }
-        res.send(playlist);
-      } catch (error) {
-        console.error('Error fetching playlist by ID:', error);
-        res.status(500).send({ message: 'Failed to fetch playlist.' });
-      }
-    });
-
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await playlistCollection.findOne(query)
+      res.json(result)
+    })
 
 
 
     // to send users backend
-    app.post('/users', async (req, res) => {
+    app.post("/users", async (req, res) => {
       const newUser = req.body;
       console.log(newUser);
       const result = await userCollection.insertOne(newUser);
       res.send(result);
-    })
-
+    });
 
     // Getting all users
-    app.get('/users', async (req, res) => {
+    app.get("/users", async (req, res) => {
       const cursor = userCollection.find();
       const result = await cursor.toArray();
       res.send(result);
-    })
+    });
 
-    // to send assignments backend 
-    app.post('/podcasts', async (req, res) => {
+    // to send assignments backend
+    app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
       console.log(newPodcast);
       const result = await podcastCollection.insertOne(newPodcast);
       res.send(result);
-    })
+    });
 
-
-    // GETTING ALL PODCASTS
+    // GETTING ALL PODCASTS with optional pagination and search
     app.get('/podcasts', async (req, res) => {
-      const cursor = podcastCollection.find();
-      const result = await cursor.toArray();
-      res.send(result);
-    })
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 9;
+      const searchText = req.query.search || ""; // Get search text from query params
+      const skip = (page - 1) * limit;
+
+      const query = searchText
+        ? { title: { $regex: searchText, $options: "i" } } // Case-insensitive regex search
+        : {}; // No filter if no search text
+
+      try {
+        const podcasts = await podcastCollection.find(query).skip(skip).limit(limit).toArray();
+        const totalPodcasts = await podcastCollection.countDocuments(query); // Only count matching podcasts
+
+        res.send({
+          podcasts,
+          totalPodcasts,
+        });
+      } catch (error) {
+        console.error('Error fetching podcasts:', error);
+        res.status(500).send({ message: 'Failed to fetch podcasts.' });
+      }
+    });
+
+    // POSTING A REVIEW
+    app.post("/podcasts/:id/reviews", async (req, res) => {
+      const { id } = req.params; // Podcast ID
+      console.log(req.params.id);
+      const { username, email, review } = req.body; // Review data
+
+      try {
+        // Find the podcast by ID and add the new review to the comments array
+        const result = await podcastCollection.updateOne(
+          { _id: new ObjectId(id) }, // Find podcast by ID
+          { $push: { comments: { username, email, review } } } // Add the new comment to the comments array
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).json({ message: "Podcast not found" });
+        }
+
+        res.status(200).json({ message: "Review added successfully" });
+      } catch (error) {
+        console.error("Error adding review:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
 
     // SEARCHING PODCAST
-    app.get('podcasts/:searchText', async (req, res) => {
+    app.get("podcasts/:searchText", async (req, res) => {
       const searchText = req.params.searchText;
       console.log(searchText);
 
-
       const query = {
-        name: { $regex: searchText, $options: 'i' },
+        name: { $regex: searchText, $options: "i" },
       };
 
       const cursor = podcastCollection.find(query);
@@ -126,11 +172,10 @@ async function run() {
 
       console.log(result);
       res.send(result);
-    })
-
+    });
 
     // GETTING A SINGLE PODCAST FOR DETAILS PAGE
-    app.get('/podcasts/:id', async (req, res) => {
+    app.get("/podcasts/:id", async (req, res) => {
       const id = req.params.id;
       let query;
 
@@ -139,97 +184,103 @@ async function run() {
         query = { _id: new ObjectId(id) };
       } else {
         // Handle invalid ObjectId cases, or use plain string id
-        query = { _id: id };  // only use this if _id in the database is a string
+        query = { _id: id }; // only use this if _id in the database is a string
       }
 
-      console.log('ID:', id);
-      console.log('Query:', query);
+      console.log("ID:", id);
+      console.log("Query:", query);
 
       try {
         const result = await podcastCollection.findOne(query);
         if (result) {
           res.status(200).send(result);
         } else {
-          res.status(404).send({ message: 'Podcast not found' });
+          res.status(404).send({ message: "Podcast not found" });
         }
       } catch (error) {
-        res.status(500).send({ error: 'Something went wrong', details: error });
+        res.status(500).send({ error: "Something went wrong", details: error });
       }
     });
 
     // PATCH request to add a like (user's email) to a podcast
-    app.patch('/podcasts/like/:id', async (req, res) => {
+    app.patch("/podcasts/like/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.query.email;
 
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
-        $addToSet: { likes: email } // Add user email to the 'likes' array, ensuring it's unique
+        $addToSet: { likes: email }, // Add user email to the 'likes' array, ensuring it's unique
       };
 
       try {
         const result = await podcastCollection.updateOne(filter, updateDoc);
         if (result.modifiedCount > 0) {
-          res.status(200).send({ message: 'Podcast liked successfully!' });
+          res.status(200).send({ message: "Podcast liked successfully!" });
         } else {
-          res.status(404).send({ message: 'Podcast not found or already liked' });
+          res
+            .status(404)
+            .send({ message: "Podcast not found or already liked" });
         }
       } catch (error) {
-        res.status(500).send({ error: 'Failed to like the podcast', details: error });
+        res
+          .status(500)
+          .send({ error: "Failed to like the podcast", details: error });
       }
     });
 
     // PATCH request to add a dislike (user's email) to a podcast
-    app.patch('/podcasts/dislike/:id', async (req, res) => {
+    app.patch("/podcasts/dislike/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.query.email;
 
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
-        $addToSet: { dislikes: email } // Add user email to the 'dislikes' array, ensuring it's unique
+        $addToSet: { dislikes: email }, // Add user email to the 'dislikes' array, ensuring it's unique
       };
 
       try {
         const result = await podcastCollection.updateOne(filter, updateDoc);
         if (result.modifiedCount > 0) {
-          res.status(200).send({ message: 'Podcast disliked successfully!' });
+          res.status(200).send({ message: "Podcast disliked successfully!" });
         } else {
-          res.status(404).send({ message: 'Podcast not found or already disliked' });
+          res
+            .status(404)
+            .send({ message: "Podcast not found or already disliked" });
         }
       } catch (error) {
-        res.status(500).send({ error: 'Failed to dislike the podcast', details: error });
+        res
+          .status(500)
+          .send({ error: "Failed to dislike the podcast", details: error });
       }
     });
 
-
-
     // Get route for all podcasts by a specific creator
-    app.get('/podcasts/creator/:creator', async (req, res) => {
+    app.get("/podcasts/creator/:creator", async (req, res) => {
       const creator = req.params.creator.trim(); // Trim any extra spaces
       let query;
 
       // Use case-insensitive regular expression to match the creator
       query = { creator: { $regex: new RegExp(creator, "i") } };
 
-      console.log('creator parameter:', creator);
-      console.log('Constructed query:', query);
+      console.log("creator parameter:", creator);
+      console.log("Constructed query:", query);
 
       try {
         const results = await podcastCollection.find(query).toArray();
-        console.log('Query results:', results);
+        console.log("Query results:", results);
 
         if (results.length > 0) {
           res.status(200).send(results);
         } else {
-          res.status(404).send({ message: 'No podcasts found for this creator' });
+          res
+            .status(404)
+            .send({ message: "No podcasts found for this creator" });
         }
       } catch (error) {
-        console.error('Error:', error);
-        res.status(500).send({ error: 'Something went wrong', details: error });
+        console.error("Error:", error);
+        res.status(500).send({ error: "Something went wrong", details: error });
       }
     });
-
-
 
     //   app.get('/podcasts/:id', async(req, res)=>{
     //     const id = req.params.id;
@@ -239,7 +290,7 @@ async function run() {
     // })
 
     // HANDLING FAVICON ERROR
-    app.get('/favicon.ico', (req, res) => res.status(204));
+    app.get("/favicon.ico", (req, res) => res.status(204));
 
     // // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
@@ -250,9 +301,9 @@ async function run() {
   }
 }
 run().catch(console.log);
-app.get('/', (req, res) => {
-  res.send('Auraloom Server Running')
-})
+app.get("/", (req, res) => {
+  res.send("Auraloom Server Running");
+});
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
