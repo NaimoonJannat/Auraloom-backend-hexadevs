@@ -4,11 +4,12 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://auraloom-hexa-devs.vercel.app"],
+    origin: ["http://localhost:3000", "http://localhost:3002", "https://auraloom-hexa-devs.vercel.app"],
     credentials: true,
   })
 );
@@ -37,6 +38,7 @@ async function run() {
     const podcastCollection = database.collection("allPodcasts");
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
+    const paymentCollection = database.collection("payments");
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
@@ -52,7 +54,7 @@ async function run() {
       res.send(result)
     })
 
-    //GET playlists filtered by email
+    //GET playlists name filtered by email
     app.get('/playlists/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email }
@@ -60,12 +62,45 @@ async function run() {
       res.send(result)
     })
 
-    //GET playlists filtered by Id
+    //GET playlists name filtered by Id
     app.get('/playlists/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await playlistCollection.findOne(query)
       res.json(result)
+    })
+
+
+    // API route for Stripe checkout
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent');
+
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: 'usd',
+          payment_method_types: ['card'],
+        });
+
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        });
+      } catch (error) {
+        console.error('Error creating payment intent:', error);
+        res.status(500).send({ error: 'Failed to create payment intent.' });
+      }
+    });
+
+
+
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+      console.log('payment info', payment);
+      res.send(paymentResult);
     })
 
 
