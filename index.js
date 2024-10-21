@@ -9,10 +9,11 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3002", "https://auraloom-hexa-devs.vercel.app"],
+    origin: ["http://localhost:3000", "https://auraloom-hexa-devs.vercel.app"],
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.3ywizof.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -76,32 +77,28 @@ async function run() {
     app.post('/create-payment-intent', async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
-      console.log(amount, 'amount inside the intent');
+      console.log(amount, 'amount inside the intent')
 
-      try {
-        const paymentIntent = await stripe.paymentIntents.create({
-          amount: amount,
-          currency: 'usd',
-          payment_method_types: ['card'],
-        });
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
 
-        res.send({
-          clientSecret: paymentIntent.client_secret,
-        });
-      } catch (error) {
-        console.error('Error creating payment intent:', error);
-        res.status(500).send({ error: 'Failed to create payment intent.' });
-      }
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
     });
-
 
 
     app.post('/payments', async (req, res) => {
       const payment = req.body;
       const paymentResult = await paymentCollection.insertOne(payment);
+
       console.log('payment info', payment);
       res.send(paymentResult);
     })
+
 
 
 
