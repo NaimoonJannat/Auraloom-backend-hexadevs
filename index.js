@@ -117,12 +117,10 @@ async function run() {
   //email filtering for viewing a creator's podcast on creator dashboard
   app.get('/podcast/:email',async(req,res) =>
     {
-        
       const email = req.params.email;
       const query = { email: email }
       const result = await podcastCollection.find(query).toArray()
-      res.send(result)
-        
+      res.send(result) 
     })
   
 
