@@ -115,7 +115,7 @@ async function run() {
       }
   });
   //email filtering for viewing a creator's podcast on creator dashboard
-  app.get('/podcasts/:email',async(req,res) =>
+  app.get('/podcast/:email',async(req,res) =>
     {
         
     
