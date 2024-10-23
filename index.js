@@ -118,7 +118,8 @@ async function run() {
   app.get('/podcast/:email',async(req,res) =>
     {
         
-    
+      const email = req.params.email;
+     
       const result = await podcastCollection.find(query).toArray()
       res.send(result)
         
