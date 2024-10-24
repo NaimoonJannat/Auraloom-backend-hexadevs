@@ -132,13 +132,13 @@ app.get('/podcasts-pagination/count', async (req, res) => {
 
 
   //email filtering for viewing a creator's podcast on creator dashboard
-  // app.get('/podcasts/:email',async(req,res) =>
-  //   {
-  //     const email = req.params.email;
-  //     const query = { email: email }
-  //     const result = await podcastCollection.find(query).toArray()
-  //     res.send(result) 
-  //   })
+  app.get('/creator-podcasts/:email',async(req,res) =>
+    {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await podcastCollection.find(query).toArray()
+      res.send(result) 
+    })
 
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
