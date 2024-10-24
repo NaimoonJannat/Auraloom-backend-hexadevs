@@ -114,8 +114,14 @@ async function run() {
           res.status(500).send({ message: 'Failed to fetch podcasts.' });
       }
   });
-  
-
+  //email filtering for viewing a creator's podcast on creator dashboard
+  app.get('/podcasts/:email',async(req,res) =>
+    {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await podcastCollection.find(query).toArray()
+      res.send(result) 
+    })
     // GETTING TOTAL PODCASTS COUNT FOR PAGINATION
     app.get('/podcasts/count', async (req, res) => {
       try {
@@ -249,6 +255,7 @@ async function run() {
           .send({ error: "Failed to dislike the podcast", details: error });
       }
     });
+
 
     // Get route for all podcasts by a specific creator
     app.get("/podcasts/creator/:creator", async (req, res) => {
