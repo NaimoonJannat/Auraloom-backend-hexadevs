@@ -99,6 +99,12 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/podcasts-email/:email', async(req, res)=>{
+      console.log(req.params.email)
+      const result = await podcastCollection.find({email:req.params.email}).toArray();
+      res.send(result)
+    })
+
 // GETTING ALL PODCASTS with optional pagination and search
 app.get('/podcasts-pagination', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -269,6 +275,13 @@ app.get('/podcasts-pagination/count', async (req, res) => {
           .send({ error: "Failed to dislike the podcast", details: error });
       }
     });
+
+    app.delete('/podcasts/:id', async(req, res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await podcastCollection.deleteOne(query);
+      res.send(result)
+    })
 
 
     // Get route for all podcasts by a specific creator
