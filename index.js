@@ -222,53 +222,85 @@ app.get('/podcasts-pagination/count', async (req, res) => {
     app.patch("/podcasts/like/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.query.email;
-
+  
       const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $addToSet: { likes: email }, // Add user email to the 'likes' array, ensuring it's unique
-      };
-
+  
       try {
-        const result = await podcastCollection.updateOne(filter, updateDoc);
-        if (result.modifiedCount > 0) {
-          res.status(200).send({ message: "Podcast liked successfully!" });
-        } else {
-          res
-            .status(404)
-            .send({ message: "Podcast not found or already liked" });
-        }
+          // First, find the podcast to check if the user has already liked or disliked it
+          const podcast = await podcastCollection.findOne(filter);
+          if (!podcast) {
+              return res.status(404).send({ message: "Podcast not found" });
+          }
+  
+          const alreadyLiked = podcast.likes.includes(email);
+          const alreadyDisliked = podcast.dislikes.includes(email);
+  
+          const updateDoc = {
+              $pull: { dislikes: email }, // Always remove the email from dislikes
+          };
+  
+          if (alreadyLiked) {
+              updateDoc.$pull.likes = email; // If already liked, remove the like
+          } else {
+              updateDoc.$addToSet = { likes: email }; // Otherwise, add the like
+          }
+  
+          await podcastCollection.updateOne(filter, updateDoc);
+  
+          // Fetch and return the updated podcast
+          const updatedPodcast = await podcastCollection.findOne(filter);
+          res.status(200).json(updatedPodcast);
+  
       } catch (error) {
-        res
-          .status(500)
-          .send({ error: "Failed to like the podcast", details: error });
+          res.status(500).send({ error: "Failed to like the podcast", details: error.message });
       }
-    });
+  });
+  
+  
+  
+  
 
     // PATCH request to add a dislike (user's email) to a podcast
     app.patch("/podcasts/dislike/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.query.email;
-
+  
       const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $addToSet: { dislikes: email }, // Add user email to the 'dislikes' array, ensuring it's unique
-      };
-
+  
       try {
-        const result = await podcastCollection.updateOne(filter, updateDoc);
-        if (result.modifiedCount > 0) {
-          res.status(200).send({ message: "Podcast disliked successfully!" });
-        } else {
-          res
-            .status(404)
-            .send({ message: "Podcast not found or already disliked" });
-        }
+          // First, find the podcast to check if the user has already liked or disliked it
+          const podcast = await podcastCollection.findOne(filter);
+          if (!podcast) {
+              return res.status(404).send({ message: "Podcast not found" });
+          }
+  
+          const alreadyLiked = podcast.likes.includes(email);
+          const alreadyDisliked = podcast.dislikes.includes(email);
+  
+          const updateDoc = {
+              $pull: { likes: email }, // Always remove the email from likes
+          };
+  
+          if (alreadyDisliked) {
+              updateDoc.$pull.dislikes = email; // If already disliked, remove the dislike
+          } else {
+              updateDoc.$addToSet = { dislikes: email }; // Otherwise, add the dislike
+          }
+  
+          await podcastCollection.updateOne(filter, updateDoc);
+  
+          // Fetch and return the updated podcast
+          const updatedPodcast = await podcastCollection.findOne(filter);
+          res.status(200).json(updatedPodcast);
+  
       } catch (error) {
-        res
-          .status(500)
-          .send({ error: "Failed to dislike the podcast", details: error });
+          res.status(500).send({ error: "Failed to dislike the podcast", details: error.message });
       }
-    });
+  });
+  
+  
+  
+  
 
 
     // Get route for all podcasts by a specific creator
