@@ -92,6 +92,13 @@ async function run() {
       res.send(result);
     });
 
+     // Getting all podcasts
+     app.get('/podcasts', async (req, res) => {
+      const cursor = podcastCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
 // GETTING ALL PODCASTS with optional pagination and search
 app.get('/podcasts-pagination', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -132,13 +139,13 @@ app.get('/podcasts-pagination/count', async (req, res) => {
 
 
   //email filtering for viewing a creator's podcast on creator dashboard
-  // app.get('/podcasts/:email',async(req,res) =>
-  //   {
-  //     const email = req.params.email;
-  //     const query = { email: email }
-  //     const result = await podcastCollection.find(query).toArray()
-  //     res.send(result) 
-  //   })
+  app.get('/creator-podcasts/:email',async(req,res) =>
+    {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await podcastCollection.find(query).toArray()
+      res.send(result) 
+    })
 
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
