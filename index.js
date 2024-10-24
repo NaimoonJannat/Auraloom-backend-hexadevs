@@ -115,15 +115,13 @@ async function run() {
       }
   });
   //email filtering for viewing a creator's podcast on creator dashboard
-  app.get('/podcast/:email',async(req,res) =>
+  app.get('/podcasts/:email',async(req,res) =>
     {
       const email = req.params.email;
       const query = { email: email }
       const result = await podcastCollection.find(query).toArray()
       res.send(result) 
     })
-  
-
     // GETTING TOTAL PODCASTS COUNT FOR PAGINATION
     app.get('/podcasts/count', async (req, res) => {
       try {
