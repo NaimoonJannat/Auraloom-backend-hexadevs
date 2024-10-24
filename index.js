@@ -92,6 +92,13 @@ async function run() {
       res.send(result);
     });
 
+     // Getting all podcasts
+     app.get('/podcasts', async (req, res) => {
+      const cursor = podcastCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
 // GETTING ALL PODCASTS with optional pagination and search
 app.get('/podcasts-pagination', async (req, res) => {
   const page = parseInt(req.query.page) || 1;
