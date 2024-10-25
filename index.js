@@ -331,6 +331,45 @@ app.get('/podcasts-pagination/count', async (req, res) => {
       }
     });
 
+// PATCH REQUEST FOR PLAY COUNT AND BADGING SYSTEM
+app.patch("/podcasts/play/:id", async (req, res) => {
+  const podcastId = req.params.id;
+  const email = req.query.email;
+
+
+  const podcastFilter = { _id: new ObjectId(podcastId) };
+  const userFilter = { email: email };
+
+  try {
+      // Update or add the play count in the podcast document
+      const podcastUpdateResult = await podcastCollection.updateOne(
+          { _id: new ObjectId(podcastId), "plays.email": email },
+          { $inc: { "plays.$.count": 1 } }
+      );
+
+      // If the user is not already in the plays array, add them with a count of 1
+      if (podcastUpdateResult.matchedCount === 0) {
+          await podcastCollection.updateOne(
+              podcastFilter,
+              { $addToSet: { plays: { email: email, count: 1 } } }
+          );
+      }
+
+      
+
+      // Fetch the updated podcast to send back
+      const updatedPodcast = await podcastCollection.findOne(podcastFilter);
+      res.status(200).json(updatedPodcast);
+
+  } catch (error) {
+      console.error("Error updating play count:", error);
+      res.status(500).json({ message: "Failed to update play count.", details: error.message });
+  }
+});
+
+
+
+
     //   app.get('/podcasts/:id', async(req, res)=>{
     //     const id = req.params.id;
     //     const query = {_id: new ObjectId(id)};
