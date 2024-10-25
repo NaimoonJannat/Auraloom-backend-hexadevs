@@ -146,7 +146,17 @@ app.get('/podcasts-pagination/count', async (req, res) => {
       const result = await podcastCollection.find(query).toArray()
       res.send(result) 
     })
-
+    //role update of users 
+    app.patch("/users/update/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email };
+      const updateDoc = {
+       $set: { ...user, timestamp: Date.now() },
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
       const { id } = req.params; // Podcast ID
