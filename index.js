@@ -36,6 +36,10 @@ async function run() {
     const podcastCollection = database.collection("allPodcasts");
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
+    const historyCollection = database.collection("history");
+
+
+    
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
