@@ -150,6 +150,8 @@ app.get('/podcasts-pagination/count', async (req, res) => {
     //role update of users 
     app.patch("/users/update/:email", async (req, res) => {
       const email = req.params.email;
+      const user = req.body;
+
     });
 
     // POSTING A REVIEW
