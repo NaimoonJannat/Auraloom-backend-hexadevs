@@ -385,6 +385,9 @@ app.patch("/podcasts/play/:id", async (req, res) => {
   const podcastId = req.params.id;
   const email = req.query.email;
 
+  if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+  }
 
   const podcastFilter = { _id: new ObjectId(podcastId) };
   const userFilter = { email: email };
@@ -404,7 +407,19 @@ app.patch("/podcasts/play/:id", async (req, res) => {
           );
       }
 
-      
+      // Update or add the played count in the user document
+      const userUpdateResult = await userCollection.updateOne(
+          { email: email, "played.podcastId": podcastId },
+          { $inc: { "played.$.count": 1 } }
+      );
+
+      // If the podcast is not already in the played array, add it with a count of 1
+      if (userUpdateResult.matchedCount === 0) {
+          await userCollection.updateOne(
+              userFilter,
+              { $addToSet: { played: { podcastId: podcastId, count: 1 } } }
+          );
+      }
 
       // Fetch the updated podcast to send back
       const updatedPodcast = await podcastCollection.findOne(podcastFilter);
