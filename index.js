@@ -151,6 +151,7 @@ app.get('/podcasts-pagination/count', async (req, res) => {
     app.patch("/users/update/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
+      const query = { email };
 
     });
 
