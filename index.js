@@ -147,6 +147,11 @@ app.get('/podcasts-pagination/count', async (req, res) => {
       res.send(result) 
     })
 
+    //role update of users 
+    app.patch("/users/update/:email", async (req, res) => {
+     
+    });
+
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
       const { id } = req.params; // Podcast ID
