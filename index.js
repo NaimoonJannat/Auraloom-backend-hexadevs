@@ -123,6 +123,31 @@ async function run() {
       res.send(result);
     });
 
+    // request to be a creator from user
+app.patch('/users', async (req, res) => {
+  const { email, request } = req.body;
+
+  if (!email || !request) {
+      return res.status(400).json({ message: "Email and request are required." });
+  }
+
+  try {
+      const result = await UsersCollection.updateOne(
+          { email: email },
+          { $set: { request: request } }
+      );
+      
+      if (result.modifiedCount > 0) {
+          res.status(200).json({ message: "Request updated successfully." });
+      } else {
+          res.status(404).json({ message: "User not found." });
+      }
+  } catch (error) {
+      res.status(500).json({ message: "Error updating request.", error });
+  }
+});
+
+
     // to send podcasts backend
     app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
