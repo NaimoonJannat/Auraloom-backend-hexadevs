@@ -4,14 +4,17 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// middleware
+//middleware
 app.use(
   cors({
     origin: ["http://localhost:3000", "https://auraloom-hexa-devs.vercel.app"],
     credentials: true,
   })
 );
+
+// app.use(cors())
 app.use(express.json());
 
 // Mongo URL Prapti
@@ -36,10 +39,7 @@ async function run() {
     const podcastCollection = database.collection("allPodcasts");
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
-    const historyCollection = database.collection("history");
-
-
-    
+    const paymentCollection = database.collection("payments");
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
@@ -55,7 +55,7 @@ async function run() {
       res.send(result)
     })
 
-    //GET playlists filtered by email
+    //GET playlists name filtered by email
     app.get('/playlists/:email', async (req, res) => {
       const email = req.params.email;
       const query = { email: email }
@@ -63,13 +63,48 @@ async function run() {
       res.send(result)
     })
 
-    //GET playlists filtered by Id
+    //GET playlists name filtered by Id
     app.get('/playlists/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await playlistCollection.findOne(query)
       res.json(result)
     })
+
+
+    // API route for Stripe checkout
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent')
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+
+
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
+      const paymentResult = await paymentCollection.insertOne(payment);
+
+      console.log('payment info', payment);
+      res.send(paymentResult);
+    })
+
+    app.get('/payments', async (req, res) => {
+      const cursor = paymentCollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+
 
 
 
@@ -87,6 +122,31 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+
+    // request to be a creator from user
+app.patch('/users', async (req, res) => {
+  const { email, request } = req.body;
+
+  if (!email || !request) {
+      return res.status(400).json({ message: "Email and request are required." });
+  }
+
+  try {
+      const result = await UsersCollection.updateOne(
+          { email: email },
+          { $set: { request: request } }
+      );
+      
+      if (result.modifiedCount > 0) {
+          res.status(200).json({ message: "Request updated successfully." });
+      } else {
+          res.status(404).json({ message: "User not found." });
+      }
+  } catch (error) {
+      res.status(500).json({ message: "Error updating request.", error });
+  }
+});
+
 
     // to send podcasts backend
     app.post("/podcasts", async (req, res) => {
@@ -150,7 +210,17 @@ app.get('/podcasts-pagination/count', async (req, res) => {
       const result = await podcastCollection.find(query).toArray()
       res.send(result) 
     })
-
+    //role update of users 
+    app.patch("/users/update/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const query = { email };
+      const updateDoc = {
+       $set: { ...user, timestamp: Date.now() },
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
     // POSTING A REVIEW
     app.post("/podcasts/:id/reviews", async (req, res) => {
       const { id } = req.params; // Podcast ID
@@ -226,53 +296,85 @@ app.get('/podcasts-pagination/count', async (req, res) => {
     app.patch("/podcasts/like/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.query.email;
-
+  
       const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $addToSet: { likes: email }, // Add user email to the 'likes' array, ensuring it's unique
-      };
-
+  
       try {
-        const result = await podcastCollection.updateOne(filter, updateDoc);
-        if (result.modifiedCount > 0) {
-          res.status(200).send({ message: "Podcast liked successfully!" });
-        } else {
-          res
-            .status(404)
-            .send({ message: "Podcast not found or already liked" });
-        }
+          // First, find the podcast to check if the user has already liked or disliked it
+          const podcast = await podcastCollection.findOne(filter);
+          if (!podcast) {
+              return res.status(404).send({ message: "Podcast not found" });
+          }
+  
+          const alreadyLiked = podcast.likes.includes(email);
+          const alreadyDisliked = podcast.dislikes.includes(email);
+  
+          const updateDoc = {
+              $pull: { dislikes: email }, // Always remove the email from dislikes
+          };
+  
+          if (alreadyLiked) {
+              updateDoc.$pull.likes = email; // If already liked, remove the like
+          } else {
+              updateDoc.$addToSet = { likes: email }; // Otherwise, add the like
+          }
+  
+          await podcastCollection.updateOne(filter, updateDoc);
+  
+          // Fetch and return the updated podcast
+          const updatedPodcast = await podcastCollection.findOne(filter);
+          res.status(200).json(updatedPodcast);
+  
       } catch (error) {
-        res
-          .status(500)
-          .send({ error: "Failed to like the podcast", details: error });
+          res.status(500).send({ error: "Failed to like the podcast", details: error.message });
       }
-    });
+  });
+  
+  
+  
+  
 
     // PATCH request to add a dislike (user's email) to a podcast
     app.patch("/podcasts/dislike/:id", async (req, res) => {
       const id = req.params.id;
       const email = req.query.email;
-
+  
       const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $addToSet: { dislikes: email }, // Add user email to the 'dislikes' array, ensuring it's unique
-      };
-
+  
       try {
-        const result = await podcastCollection.updateOne(filter, updateDoc);
-        if (result.modifiedCount > 0) {
-          res.status(200).send({ message: "Podcast disliked successfully!" });
-        } else {
-          res
-            .status(404)
-            .send({ message: "Podcast not found or already disliked" });
-        }
+          // First, find the podcast to check if the user has already liked or disliked it
+          const podcast = await podcastCollection.findOne(filter);
+          if (!podcast) {
+              return res.status(404).send({ message: "Podcast not found" });
+          }
+  
+          const alreadyLiked = podcast.likes.includes(email);
+          const alreadyDisliked = podcast.dislikes.includes(email);
+  
+          const updateDoc = {
+              $pull: { likes: email }, // Always remove the email from likes
+          };
+  
+          if (alreadyDisliked) {
+              updateDoc.$pull.dislikes = email; // If already disliked, remove the dislike
+          } else {
+              updateDoc.$addToSet = { dislikes: email }; // Otherwise, add the dislike
+          }
+  
+          await podcastCollection.updateOne(filter, updateDoc);
+  
+          // Fetch and return the updated podcast
+          const updatedPodcast = await podcastCollection.findOne(filter);
+          res.status(200).json(updatedPodcast);
+  
       } catch (error) {
-        res
-          .status(500)
-          .send({ error: "Failed to dislike the podcast", details: error });
+          res.status(500).send({ error: "Failed to dislike the podcast", details: error.message });
       }
-    });
+  });
+  
+  
+  
+  
 
 
     // Get route for all podcasts by a specific creator
@@ -302,6 +404,60 @@ app.get('/podcasts-pagination/count', async (req, res) => {
         res.status(500).send({ error: "Something went wrong", details: error });
       }
     });
+
+// PATCH REQUEST FOR PLAY COUNT AND BADGING SYSTEM
+app.patch("/podcasts/play/:id", async (req, res) => {
+  const podcastId = req.params.id;
+  const email = req.query.email;
+
+  if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+  }
+
+  const podcastFilter = { _id: new ObjectId(podcastId) };
+  const userFilter = { email: email };
+
+  try {
+      // Update or add the play count in the podcast document
+      const podcastUpdateResult = await podcastCollection.updateOne(
+          { _id: new ObjectId(podcastId), "plays.email": email },
+          { $inc: { "plays.$.count": 1 } }
+      );
+
+      // If the user is not already in the plays array, add them with a count of 1
+      if (podcastUpdateResult.matchedCount === 0) {
+          await podcastCollection.updateOne(
+              podcastFilter,
+              { $addToSet: { plays: { email: email, count: 1 } } }
+          );
+      }
+
+      // Update or add the played count in the user document
+      const userUpdateResult = await userCollection.updateOne(
+          { email: email, "played.podcastId": podcastId },
+          { $inc: { "played.$.count": 1 } }
+      );
+
+      // If the podcast is not already in the played array, add it with a count of 1
+      if (userUpdateResult.matchedCount === 0) {
+          await userCollection.updateOne(
+              userFilter,
+              { $addToSet: { played: { podcastId: podcastId, count: 1 } } }
+          );
+      }
+
+      // Fetch the updated podcast to send back
+      const updatedPodcast = await podcastCollection.findOne(podcastFilter);
+      res.status(200).json(updatedPodcast);
+
+  } catch (error) {
+      console.error("Error updating play count:", error);
+      res.status(500).json({ message: "Failed to update play count.", details: error.message });
+  }
+});
+
+
+
 
     //   app.get('/podcasts/:id', async(req, res)=>{
     //     const id = req.params.id;
