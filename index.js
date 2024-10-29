@@ -123,30 +123,33 @@ async function run() {
       res.send(result);
     });
 
-    // request to be a creator from user
+     // Updating a user's request to be a creator
 app.patch('/users', async (req, res) => {
   const { email, request } = req.body;
 
-  if (!email || !request) {
-      return res.status(400).json({ message: "Email and request are required." });
+  if (!email || request !== 'beCreator') {
+    return res.status(400).send({ message: "Invalid request data" });
   }
 
   try {
-      const result = await UsersCollection.updateOne(
-          { email: email },
-          { $set: { request: request } }
-      );
-      
-      if (result.modifiedCount > 0) {
-          res.status(200).json({ message: "Request updated successfully." });
-      } else {
-          res.status(404).json({ message: "User not found." });
-      }
+    // Update the user's document with the "request": "beCreator" field
+    const filter = { email: email };
+    const updateDoc = {
+      $set: { request: 'beCreator' },
+    };
+    
+    const result = await userCollection.updateOne(filter, updateDoc);
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send({ message: "User not found or request already pending" });
+    }
+
+    res.send({ message: "Request to be a creator sent successfully", result });
   } catch (error) {
-      res.status(500).json({ message: "Error updating request.", error });
+    console.error("Error updating user:", error);
+    res.status(500).send({ message: "Failed to send creator request" });
   }
 });
-
 
     // to send podcasts backend
     app.post("/podcasts", async (req, res) => {
