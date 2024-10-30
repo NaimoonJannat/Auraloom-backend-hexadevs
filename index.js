@@ -123,6 +123,34 @@ async function run() {
       res.send(result);
     });
 
+     // Updating a user's request to be a creator
+app.patch('/users', async (req, res) => {
+  const { email, request } = req.body;
+
+  if (!email || request !== 'beCreator') {
+    return res.status(400).send({ message: "Invalid request data" });
+  }
+
+  try {
+    // Update the user's document with the "request": "beCreator" field
+    const filter = { email: email };
+    const updateDoc = {
+      $set: { request: 'beCreator' },
+    };
+    
+    const result = await userCollection.updateOne(filter, updateDoc);
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send({ message: "User not found or request already pending" });
+    }
+
+    res.send({ message: "Request to be a creator sent successfully", result });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).send({ message: "Failed to send creator request" });
+  }
+});
+
     // to send podcasts backend
     app.post("/podcasts", async (req, res) => {
       const newPodcast = req.body;
