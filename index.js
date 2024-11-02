@@ -38,8 +38,8 @@ async function run() {
     const database = client.db("Auraloom");
     const podcastCollection = database.collection("allPodcasts");
     const userCollection = database.collection("allUsers");
-    const playlistCollection = database.collection("playlists");
     const paymentCollection = database.collection("payments");
+    const playlistCollection = database.collection("playlists");
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
@@ -70,6 +70,19 @@ async function run() {
       const result = await playlistCollection.findOne(query)
       res.json(result)
     })
+
+    // ADD podcast to a specific playlist
+    app.put('/playlists/:id/add-podcast', async (req, res) => {
+      const id = req.params.id;
+      const newPodcast = req.body;  // Podcast details to add
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $push: { podcasts: newPodcast }
+      };
+      const result = await playlistCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
 
 
     // API route for Stripe checkout
