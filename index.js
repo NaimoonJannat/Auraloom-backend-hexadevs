@@ -411,7 +411,7 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await podcastCollection.deleteOne(query);
-      
+      res.send(result);
     });
 
     // PATCH REQUEST FOR PLAY COUNT AND BADGING SYSTEM
