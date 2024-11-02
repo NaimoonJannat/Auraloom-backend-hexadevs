@@ -406,6 +406,13 @@ async function run() {
         res.status(500).send({ error: "Something went wrong", details: error });
       }
     });
+    //delete podcast from admin dashboard
+    app.delete("/podcasts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await podcastCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // PATCH REQUEST FOR PLAY COUNT AND BADGING SYSTEM
     app.patch("/podcasts/play/:id", async (req, res) => {
