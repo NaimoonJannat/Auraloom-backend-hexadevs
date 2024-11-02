@@ -40,6 +40,7 @@ async function run() {
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
     const paymentCollection = database.collection("payments");
+    const badgeCollection = database.collection("badges");
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
@@ -457,6 +458,35 @@ async function run() {
         res.status(500).json({ message: "Failed to update play count.", details: error.message });
       }
     });
+
+   
+    // ADDING A BADGE
+    app.post("/badges", async (req, res) => {
+      try {
+        const { name, criteria, value, imageUrl } = req.body;
+
+        // Validate incoming data
+        if (!name || !criteria || !value || isNaN(value)) {
+          return res.status(400).json({ message: "Invalid data. All fields are required, and value must be a number." });
+        }
+
+        // Insert the badge data into the database
+        const badgeData = { name, criteria, value, imageUrl };
+        const result = await badgeCollection.insertOne(badgeData); 
+
+        if (result.insertedCount === 0) {
+          throw new Error("Failed to insert badge data");
+        }
+
+        res.status(201).json({ message: "Badge created successfully", badge: badgeData });
+      } catch (error) {
+        console.error("Error creating badge:", error); // Log the detailed error to the server console
+        res.status(500).json({ message: "Failed to create badge", error: error.message });
+      }
+    });
+
+    
+    
 
 
 
