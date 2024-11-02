@@ -459,7 +459,18 @@ async function run() {
       }
     });
 
-   
+    // FETCHING ALL BADGES
+    app.get("/badges", async (req, res) => {
+      try {
+        const badges = await badgeCollection.find().toArray();
+        res.status(200).send(badges);
+      } catch (error) {
+        console.error("Error fetching badges:", error);
+        res.status(500).send({ message: "Failed to fetch badges", error });
+      }
+    });
+
+
     // ADDING A BADGE
     app.post("/badges", async (req, res) => {
       try {
