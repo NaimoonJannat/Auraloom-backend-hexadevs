@@ -204,7 +204,27 @@ async function run() {
         res.status(500).send({ message: 'Failed to fetch podcast count.' });
       }
     });
-
+    //user photo and name update in usercollection
+    app.patch("/users/update/:userId", async (req, res) => {
+      const userId = req.params.userId;
+      const { displayName, photoURL } = req.body;
+      const query = { _id: new ObjectId(userId) }; // Use _id as the unique identifier
+      const updateDoc = {
+          $set: { 
+              displayName, 
+              photoURL,
+              timestamp: Date.now()
+          },
+      };
+  
+      try {
+          const result = await userCollection.updateOne(query, updateDoc);
+          res.send(result);
+      } catch (error) {
+          res.status(500).send({ error: "Failed to update user data." });
+      }
+  });
+  
 
     //email filtering for viewing a creator's podcast on creator dashboard
     app.get('/creator-podcasts/:email', async (req, res) => {
@@ -406,6 +426,13 @@ async function run() {
         console.error("Error:", error);
         res.status(500).send({ error: "Something went wrong", details: error });
       }
+    });
+    //delete podcast from admin dashboard
+    app.delete("/podcasts/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await podcastCollection.deleteOne(query);
+      res.send(result);
     });
 
     // PATCH REQUEST FOR PLAY COUNT AND BADGING SYSTEM
