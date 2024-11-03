@@ -203,7 +203,27 @@ async function run() {
         res.status(500).send({ message: 'Failed to fetch podcast count.' });
       }
     });
-
+    //user photo and name update in usercollection
+    app.patch("/users/update/:userId", async (req, res) => {
+      const userId = req.params.userId;
+      const { displayName, photoURL } = req.body;
+      const query = { _id: new ObjectId(userId) }; // Use _id as the unique identifier
+      const updateDoc = {
+          $set: { 
+              displayName, 
+              photoURL,
+              timestamp: Date.now()
+          },
+      };
+  
+      try {
+          const result = await userCollection.updateOne(query, updateDoc);
+          res.send(result);
+      } catch (error) {
+          res.status(500).send({ error: "Failed to update user data." });
+      }
+  });
+  
 
     //email filtering for viewing a creator's podcast on creator dashboard
     app.get('/creator-podcasts/:email', async (req, res) => {
