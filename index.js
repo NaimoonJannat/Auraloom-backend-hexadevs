@@ -40,6 +40,7 @@ async function run() {
     const userCollection = database.collection("allUsers");
     const playlistCollection = database.collection("playlists");
     const paymentCollection = database.collection("payments");
+    const badgeCollection = database.collection("badges");
 
     // CREATE a new playlist
     app.post('/playlists', async (req, res) => {
@@ -484,6 +485,84 @@ async function run() {
         res.status(500).json({ message: "Failed to update play count.", details: error.message });
       }
     });
+
+    // FETCHING ALL BADGES
+    app.get("/badges", async (req, res) => {
+      try {
+        const badges = await badgeCollection.find().toArray();
+        res.status(200).send(badges);
+      } catch (error) {
+        console.error("Error fetching badges:", error);
+        res.status(500).send({ message: "Failed to fetch badges", error });
+      }
+    });
+
+
+// FETCHING CUSTOM USER DATA BY EMAIL
+app.get("/user/:email", async (req, res) => {
+  const { email } = req.params; // Access email from the route parameters
+  try {
+    const user = await userCollection.findOne({ email: email });
+    if (user) {
+      res.status(200).send(user);
+    } else {
+      res.status(404).send({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).send({ message: "Failed to fetch user", error });
+  }
+});
+
+
+
+
+
+    // ADDING A BADGE
+    app.post("/badges", async (req, res) => {
+      try {
+        const { name, criteria, value, imageUrl } = req.body;
+
+        // Validate incoming data
+        if (!name || !criteria || !value || isNaN(value)) {
+          return res.status(400).json({ message: "Invalid data. All fields are required, and value must be a number." });
+        }
+
+        // Insert the badge data into the database
+        const badgeData = { name, criteria, value, imageUrl };
+        const result = await badgeCollection.insertOne(badgeData); 
+
+        if (result.insertedCount === 0) {
+          throw new Error("Failed to insert badge data");
+        }
+
+        res.status(201).json({ message: "Badge created successfully", badge: badgeData });
+      } catch (error) {
+        console.error("Error creating badge:", error); // Log the detailed error to the server console
+        res.status(500).json({ message: "Failed to create badge", error: error.message });
+      }
+    });
+
+    
+    // DELETE BADGE
+    app.delete('/badges/:id', async (req, res) => {
+      const { id } = req.params;
+
+      try {
+        // Attempt to delete the badge from the collection using its ID
+        const result = await badgeCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 1) {
+          res.status(200).send({ message: 'Badge successfully deleted' });
+        } else {
+          res.status(404).send({ message: 'Badge not found' });
+        }
+      } catch (error) {
+        console.error('Error deleting badge:', error);
+        res.status(500).send({ message: 'Failed to delete badge', error });
+      }
+    });
+
 
 
 
