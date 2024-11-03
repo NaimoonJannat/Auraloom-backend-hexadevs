@@ -498,6 +498,26 @@ async function run() {
     });
 
 
+// FETCHING CUSTOM USER DATA BY EMAIL
+app.get("/user/:email", async (req, res) => {
+  const { email } = req.params; // Access email from the route parameters
+  try {
+    const user = await userCollection.findOne({ email: email });
+    if (user) {
+      res.status(200).send(user);
+    } else {
+      res.status(404).send({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).send({ message: "Failed to fetch user", error });
+  }
+});
+
+
+
+
+
     // ADDING A BADGE
     app.post("/badges", async (req, res) => {
       try {
