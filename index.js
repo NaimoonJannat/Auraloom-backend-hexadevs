@@ -497,7 +497,25 @@ async function run() {
     });
 
     
-    
+    // DELETE BADGE
+    app.delete('/badges/:id', async (req, res) => {
+      const { id } = req.params;
+
+      try {
+        // Attempt to delete the badge from the collection using its ID
+        const result = await badgeCollection.deleteOne({ _id: new ObjectId(id) });
+
+        if (result.deletedCount === 1) {
+          res.status(200).send({ message: 'Badge successfully deleted' });
+        } else {
+          res.status(404).send({ message: 'Badge not found' });
+        }
+      } catch (error) {
+        console.error('Error deleting badge:', error);
+        res.status(500).send({ message: 'Failed to delete badge', error });
+      }
+    });
+
 
 
 
